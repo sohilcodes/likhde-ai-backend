@@ -7,14 +7,19 @@ const authRoute = require("./routes/auth");
 
 const app = express();
 
-app.use(cors({ origin: "*" }));
+app.use(cors({
+  origin: [
+    "https://likhdeai.vercel.app",
+    "http://localhost:3000"
+  ],
+  methods: ["GET", "POST"],
+}));
+
 app.use(express.json());
 
-// Routes
 app.use("/api/generate", generateRoute);
 app.use("/api/auth", authRoute);
 
-// Health check
 app.get("/", (req, res) => {
   res.json({ status: "LikhDe AI Backend Running 🚀" });
 });
