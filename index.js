@@ -7,13 +7,7 @@ const authRoute = require("./routes/auth");
 
 const app = express();
 
-app.use(cors({
-  origin: [
-    "https://likhdeai.vercel.app",
-    "http://localhost:3000"
-  ],
-  methods: ["GET", "POST"],
-}));
+app.use(cors());
 
 app.use(express.json());
 
