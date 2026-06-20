@@ -1,11 +1,10 @@
 const express = require("express");
 const router = express.Router();
-const { GoogleGenerativeAI } = require("@google/generative-ai");
+const Groq = require("groq-sdk");
 const { freeLimiter } = require("../middleware/rateLimit");
 
-const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
+const groq = new Groq({ apiKey: process.env.GROQ_API_KEY });
 
-// Content types config
 const CONTENT_TYPES = {
   caption: {
     label: "Instagram Caption",
@@ -69,12 +68,10 @@ Sirf hashtags de, # ke saath, space separated.`,
 const TONES = ["funny", "motivational", "informative", "emotional", "viral", "professional", "casual", "bold"];
 const PLATFORMS = ["Instagram", "YouTube", "Telegram", "Twitter/X"];
 
-// POST /api/generate
 router.post("/", freeLimiter, async (req, res) => {
   try {
     const { topic, contentType, tone, platform, userId, plan } = req.body;
 
-    // Validation
     if (!topic || !contentType) {
       return res.status(400).json({ error: "Topic aur content type dono chahiye!" });
     }
@@ -83,7 +80,6 @@ router.post("/", freeLimiter, async (req, res) => {
       return res.status(400).json({ error: "Invalid content type" });
     }
 
-    // Paid-only content types check
     const paidOnlyTypes = ["script", "hashtags"];
     if (paidOnlyTypes.includes(contentType) && plan !== "paid") {
       return res.status(403).json({
@@ -98,10 +94,13 @@ router.post("/", freeLimiter, async (req, res) => {
     const promptFn = CONTENT_TYPES[contentType].prompt;
     const finalPrompt = promptFn(topic, selectedTone, selectedPlatform);
 
-    // Call Gemini
-    const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash" });
-    const result = await model.generateContent(finalPrompt);
-    const text = result.response.text();
+    // Call Groq
+    const result = await groq.chat.completions.create({
+      model: "llama-3.3-70b-versatile",
+      messages: [{ role: "user", content: finalPrompt }],
+      max_tokens: 1000,
+    });
+    const text = result.choices[0].message.content;
 
     return res.json({
       success: true,
@@ -117,7 +116,6 @@ router.post("/", freeLimiter, async (req, res) => {
   }
 });
 
-// GET /api/generate/types — return available content types & tones
 router.get("/types", (req, res) => {
   res.json({
     contentTypes: Object.entries(CONTENT_TYPES).map(([key, val]) => ({
